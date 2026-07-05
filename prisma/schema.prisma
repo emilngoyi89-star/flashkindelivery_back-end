@@ -1,0 +1,236 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// --- ÉNUMÉRATIONS ---
+enum Role {
+  ADMIN
+  FLASHMAN
+  PARTNER
+  DRIVER
+}
+
+enum OrderStatus {
+  RECEIVED
+  IN_PROGRESS
+  DELIVERED
+  ACCEPTED
+  CANCELLED
+}
+
+enum TransactionType {
+  CREDIT  // L'argent entre (ex: commission de livraison)
+  DEBIT   // L'argent sort (ex: paiement du livreur par l'admin)
+}
+
+enum WithdrawalStatus {
+  PENDING   // En attente
+  APPROVED  // Payé
+  REJECTED  // Refusé
+}
+
+// --- MODÈLES PRINCIPAUX ---
+model User {
+  id                  String   @id @default(uuid())
+  email               String   @unique
+  password            String
+  role                Role     @default(PARTNER)
+  firstName           String
+  lastName            String
+  phone               String?
+  storeName           String?
+  avatarUrl           String?  //
+  balance             Float    @default(0.0)
+  isActive            Boolean  @default(true)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  defaultAddress      String?  // L'adresse de ramassage habituelle (ex: Gombe)
+  defaultPhone        String?  // Le numéro d'expédition par défaut
+  webhookUrl          String?  // Le fameux pont pour connecter Whatixo
+  // Réinitialisation de mot de passe
+  resetPasswordToken  String?
+  resetPasswordExpire DateTime?
+
+  // Relations
+  ordersAsPartner     Command[]           @relation("PartnerOrders")
+  ordersAsFlashman    Command[]           @relation("FlashmanOrders")
+  payments            Payment[]
+  reviewsReceived     Review[]            @relation("FlashmanReviews")
+  transactions        Transaction[]
+  withdrawals         WithdrawalRequest[]
+  notifications       Notification[]
+  devices          Device[]  // Appareils connus pour cet utilisateur
+  twoFactorEnabled Boolean   @default(false) // Permet à l'utilisateur d'activer ou non le 2FA
+  otpCode          String?   // Le code à 6 chiffres
+  otpExpire        DateTime? // Expiration du code (ex: 10 minutes)
+  products Product[] @relation("PartnerProducts")
+  
+  // Relations
+ 
+  
+  // 🌟 NOUVEAUX CHAMPS DE PERFORMANCE (GAMIFICATION)
+  averageRating    Float    @default(5.0) // Tous les livreurs commencent avec 5 étoiles
+  totalCompleted   Int      @default(0)   // Nombre total de courses livrées
+  totalCancelled   Int      @default(0)   // Nombre de fois où le livreur a annulé ou a été révoqué
+}
+// --- NOUVEAU MODÈLE : APPAREILS (Pour détecter les nouvelles connexions) ---
+model Device {
+  id          String   @id @default(uuid())
+  deviceInfo  String   // Ex: "Chrome on Windows 10" ou "iPhone Safari"
+  ipAddress   String   // Adresse IP de la connexion
+  lastLogin   DateTime @default(now())
+  createdAt   DateTime @default(now())
+
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, deviceInfo, ipAddress]) // Empêche les doublons pour le même appareil/IP
+}
+
+model Command {
+  id                 String      @id @default(uuid())
+  clientName         String
+  clientAddress      String
+  clientPhone        String
+  
+  // --- CHAMPS E-COMMERCE ---
+  details            String?     // Description du colis (ex: 2 paires de chaussures)
+  amountToCollect    Float       @default(0.0) // Cash on Delivery (Montant à encaisser)
+  deliveryFee     Float?   @default(0)
+  
+  status             OrderStatus @default(RECEIVED)
+  //price              Float       @default(5.0) // Frais de livraison
+  //flashmanCommission Float       @default(2.0)
+  //flashkinCommission Float       @default(3.0)
+  orderLines OrderLine[] @relation("CommandLines")
+  
+
+  // 🚀 --- NOUVEAUX CHAMPS POUR LE TRACKING PUBLIC --- 🚀
+  trackingCode       String?     @unique   // Code unique (ex: FLK-89A2B)
+  trackingExpire     DateTime?             // Date d'expiration du lien (J+7)
+
+  createdAt          DateTime    @default(now())
+  updatedAt          DateTime    @updatedAt
+
+  partnerId          String
+  partner            User        @relation("PartnerOrders", fields: [partnerId], references: [id])
+  flashmanId         String?
+  flashman           User?       @relation("FlashmanOrders", fields: [flashmanId], references: [id])
+  
+  review             Review?
+}
+
+// --- MODÈLES FINANCIERS ---
+model Transaction {
+  id          String          @id @default(uuid())
+  amount      Float
+  type        TransactionType
+  description String          // ex: "Commission pour la commande #123"
+  createdAt   DateTime        @default(now())
+
+  userId      String
+  user        User            @relation(fields: [userId], references: [id])
+}
+
+model WithdrawalRequest {
+  id          String           @id @default(uuid())
+  amount      Float
+  status      WithdrawalStatus @default(PENDING)
+  method      String           @default("M-PESA") 
+  phone       String           @default("NON_SPECIFIE")
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  userId      String
+  user        User             @relation(fields: [userId], references: [id])
+}
+
+model Payment {
+  id          String   @id @default(uuid())
+  amount      Float
+  payslipUrl  String?  // Lien vers le PDF généré
+  createdAt   DateTime @default(now())
+  
+  flashmanId  String
+  flashman    User     @relation(fields: [flashmanId], references: [id])
+}
+
+// --- MODÈLES ANNEXES ---
+model Review {
+  id          String   @id @default(uuid())
+  rating      Int      
+  comment     String?
+  createdAt   DateTime @default(now())
+
+  commandId   String   @unique
+  command     Command  @relation(fields: [commandId], references: [id])
+  flashmanId  String
+  flashman    User     @relation("FlashmanReviews", fields: [flashmanId], references: [id])
+}
+
+model Notification {
+  id          String   @id @default(uuid())
+  type        String   // "WHATSAPP" ou "EMAIL"
+  message     String
+  isRead      Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+}
+
+// --- CATALOGUE DE TARIFICATION DYNAMIQUE ---
+model DeliveryZone {
+  id             String   @id @default(uuid())
+  name           String   // Ex: "Zone A" ou "Centre-ville"
+  communes       String[] // Tableau des communes : ["Gombe", "Kintambo", "Kalamu"]
+  
+  totalPrice     Float    // Ce que le client ou partenaire paie (ex: 5.0)
+  agencyMargin   Float    // La part qui revient à Flashkin (ex: 2.0)
+  
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+// --- RÉGLAGES SYSTÈME (ADMIN) ---
+model SystemSetting {
+  key       String   @id // Ex: 'CRON_WAKEUP_ACTIVE' ou 'CRON_WAKEUP_MESSAGE'
+  value     String
+  updatedAt DateTime @updatedAt
+}
+// --- NOUVEAUX MODÈLES CATALOGUE & STOCKS ---
+model Product {
+  id          String   @id @default(uuid())
+  name        String
+  category    String
+  description String?
+  imageUrl    String?
+  price       Float    // Prix de vente
+  stock       Int      @default(0)
+  sku         String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  partnerId   String
+  partner     User     @relation("PartnerProducts", fields: [partnerId], references: [id])
+  
+  orderLines  OrderLine[]
+}
+
+model OrderLine {
+  id          String   @id @default(uuid())
+  quantity    Int
+  unitPrice   Float    // Prix unitaire figé au moment de la commande
+
+  productId   String
+  product     Product  @relation(fields: [productId], references: [id])
+  
+  commandId   String
+  command     Command  @relation("CommandLines", fields: [commandId], references: [id], onDelete: Cascade)
+}
