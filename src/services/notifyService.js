@@ -15,6 +15,10 @@ const transporter = nodemailer.createTransport({
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS,
   },
+  // 👇 Voici le bloc ajouté pour contourner la sécurité de Render 👇
+  tls: {
+    rejectUnauthorized: false
+  }
 });
 
 const COLORS = {
