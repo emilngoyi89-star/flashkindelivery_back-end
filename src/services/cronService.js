@@ -54,7 +54,7 @@ const initWakeUpCron = () => {
             .replace('{{name}}', flashman.firstName)
             .replace('{{count}}', abandonedCount);
             
-          const whatsappText = `⚡ *FLASHKIN DISPATCH | URGENCE*\n\n${personalizedMessage}\n\n🔗 *Ouvrir le Radar :*\nhttp://localhost:5173/dashboard`;
+          const whatsappText = `⚡ *FLASHKIN DISPATCH | URGENCE*\n\n${personalizedMessage}\n\n🔗 *Ouvrir le Radar :*\flashkindelivery.netlify.app/dashboard`;
           
           notifyService.sendWhatixoNotification(flashman.phone, whatsappText)
             .catch(err => console.error(`[CRON WA ERROR] Pour ${flashman.phone}:`, err.message));

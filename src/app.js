@@ -14,7 +14,7 @@ app.use(helmet()); // Protège les en-têtes HTTP
 
 // Autoriser le Frontend à communiquer avec le Backend (CORS)
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  origin: process.env.FRONTEND_URL || 'https://flashkindelivery.netlify.app',
   credentials: true
 }));
 

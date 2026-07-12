@@ -4,12 +4,13 @@ require('dotenv').config();
 const nodemailer = require('nodemailer');
 const axios = require('axios'); 
 
-
 console.log("🔒 EMAIL_USER chargé :", process.env.EMAIL_USER ? "OUI" : "NON");
 console.log("🔒 EMAIL_PASS chargé :", process.env.EMAIL_PASS ? "OUI" : "NON");
 
 const transporter = nodemailer.createTransport({
-  service: 'gmail',
+  host: 'smtp.gmail.com', // On pointe directement vers le serveur de Google
+  port: 465,              // Render exige ce port sécurisé
+  secure: true,           // Active le SSL (obligatoire avec le port 465)
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS,
@@ -589,7 +590,7 @@ const sendAdminWithdrawalAction = async (user, amount, method, action, reason = 
 const sendOtpEmail = async (user, otpCode, tempToken) => {
   try {
     // 🔗 Le lien magique qui redirige vers le frontend avec le token
-    const buttonUrl = `http://localhost:5173/login?token=${tempToken}&email=${encodeURIComponent(user.email)}`;
+    const buttonUrl = `https://flashkindelivery.netlify.app/login?token=${tempToken}&email=${encodeURIComponent(user.email)}`;
 
     const mailOptions = {
       from: `"Flashkin Delivery" <${process.env.EMAIL_USER}>`,
