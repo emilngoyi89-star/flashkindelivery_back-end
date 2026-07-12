@@ -9,8 +9,8 @@ console.log("🔒 EMAIL_PASS chargé :", process.env.EMAIL_PASS ? "OUI" : "NON")
 
 const transporter = nodemailer.createTransport({
   host: 'smtp.gmail.com', // On pointe directement vers le serveur de Google
-  port: 465,              // Render exige ce port sécurisé
-  secure: true,           // Active le SSL (obligatoire avec le port 465)
+  port: 587,              // Render exige ce port sécurisé
+  secure: false,           // Active le SSL (obligatoire avec le port 465)
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS,
