@@ -8,14 +8,14 @@ console.log("🔒 EMAIL_USER chargé :", process.env.EMAIL_USER ? "OUI" : "NON")
 console.log("🔒 EMAIL_PASS chargé :", process.env.EMAIL_PASS ? "OUI" : "NON");
 
 const transporter = nodemailer.createTransport({
-  host: 'smtp.gmail.com', // On pointe directement vers le serveur de Google
-  port: 587,              // Render exige ce port sécurisé
-  secure: false,           // Active le SSL (obligatoire avec le port 465)
+  host: 'smtp.gmail.com',
+  port: 587,              // CHANGEMENT ICI : On utilise le port 587
+  secure: false,          // CHANGEMENT ICI : false est OBLIGATOIRE pour le port 587
+  requireTLS: true,       // CHANGEMENT ICI : Force le passage en connexion sécurisée
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS,
   },
-  // 👇 Voici le bloc ajouté pour contourner la sécurité de Render 👇
   tls: {
     rejectUnauthorized: false
   }
