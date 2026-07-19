@@ -9,18 +9,18 @@ console.log("🔒 EMAIL_PASS chargé :", process.env.EMAIL_PASS ? "OUI" : "NON")
 
 const transporter = nodemailer.createTransport({
   host: 'smtp.gmail.com',
-  port: 587,              // CHANGEMENT ICI : On utilise le port 587
-  secure: false,          // CHANGEMENT ICI : false est OBLIGATOIRE pour le port 587
-  requireTLS: true,       // CHANGEMENT ICI : Force le passage en connexion sécurisée
+  port: 587,
+  secure: false,
+  requireTLS: true,
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS,
   },
   tls: {
     rejectUnauthorized: false
-  }
+  },
+  family: 4 // 👈 LA LIGNE MAGIQUE : Force l'utilisation de l'IPv4
 });
-
 const COLORS = {
   blue: '#24445c',
   yellow: '#f4c414',
